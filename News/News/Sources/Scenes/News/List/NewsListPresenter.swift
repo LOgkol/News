@@ -11,9 +11,10 @@ protocol NewsListPresentationProtocol: AnyObject {
     var viewController: NewsListDisplayLogic? {get set}
     var router: NewsListRouterProtocol? {get set}
     
+    func checkingDataOnDisk()
     func loadNewsList()
     func updateNewsData()
-    func getModel(indexPath: Int) -> NewsListModel.List?
+    func getModel(indexPath: Int) -> NewsListModel.News?
     func getCounterModel() -> Int?
     func goToNewsDetail(indexPath: Int)
 }
@@ -34,12 +35,24 @@ final class NewsListPresenter: NewsListPresentationProtocol {
     private var isLoading = false
     private var isAllNewsLoaded = false
     private var totalResults: Int = 0
-    private var newsModel: [NewsListModel.List] = []
+    private var newsModel: [NewsListModel.News] = []
     
     private var limit: Int = 5
     private var offset: Int = 1
     
     // MARK: - Delegate Methods
+    
+    func checkingDataOnDisk() {
+        if let data = StorageManager.shared.readingData(), data.count > 0 {
+            DispatchQueue.main.async {
+                self.newsModel = data
+                self.offset = self.newsModel.count / 5 + 1
+                self.viewController?.showFirstNews()
+            }
+        } else {
+            loadNewsList()
+        }
+    }
     
     func loadNewsList() {
         guard !isLoading, !isAllNewsLoaded else { return }
@@ -54,11 +67,10 @@ final class NewsListPresenter: NewsListPresentationProtocol {
         isLoading = true
         let limit = newsModel.count
         let offset = 1
-        updateData(limit: limit, offset: offset)
-        print("limit: \(limit), offset: \(offset)")
+        getNewsList(limit: limit, offset: offset, IsThisAnUpdateData: true)
     }
     
-    func getModel(indexPath: Int) -> NewsListModel.List? {
+    func getModel(indexPath: Int) -> NewsListModel.News? {
         return newsModel[indexPath]
     }
     
@@ -70,7 +82,7 @@ final class NewsListPresenter: NewsListPresentationProtocol {
         self.newsModel[indexPath].numberOfNewsViews += 1
         let model = newsModel[indexPath]
         router?.goToDetailViewController(model: model)
-        viewController?.updateView()
+        StorageManager.shared.saveData(model: newsModel)
     }
 }
 
@@ -79,49 +91,16 @@ final class NewsListPresenter: NewsListPresentationProtocol {
 private extension NewsListPresenter {
     
     //MARK: - Network
-    //TODO: Здесь отрабатывает первый запрос в сеть и дальнейшая пагинация
-    func getNewsList(limit: Int, offset: Int) {
-        let requestModel = NewsListModel.NewsRequestModel(limit: limit, offset: offset)
-        newsNetworkService.getNewsList(requestModel: requestModel) { [weak self] result in
+    func getNewsList(limit: Int, offset: Int, IsThisAnUpdateData: Bool = false) {
+        let requestModel = NewsListModel.RequestNewsModel(limit: limit, offset: offset)
+        NewsNetworkManager.shared.getNews(requestModel: requestModel) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let response):
                 if let list = response.articles, list.count > 0 {
                     DispatchQueue.main.async {
-                        self.totalResults = response.totalResults ?? 10
-                        self.setupModel(model: list)
-                        self.isLoading = false
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        self.noResult()
-                        self.isLoading = false
-                    }
-                }
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    //если сюда частенько падает попробуйте поменять apiKey in NewsNetworkManager
-                    //если проблема не исчезнет пожалуйста свяжитесь со мной //telegram: @LOgkol
-                    self.viewController?.showAlertRequestError(message: error.localizedDescription)
-                    self.isLoading = false
-                }
-            }
-        }
-    }
-    
-    //TODO: тут отрабатывается именно рефреш контрол ( обновление даты )
-    // да можно сделать лучше, вынести этот запрос, но дедлайн и работа не оставляют выбора, лучше конечно потом переделать
-    //Я не успел прикрутить coreData, думал на всякий сохранять в userDefaults, но я изначально выбрал не правильный вектор а именно в сетевую модель закинул numberOfNewsViews хотя она не прилетает с бека ( думал в ней хранить кол-ва просмотров ), но я забыл что userDefaults декодит данные и просто не сможет декодить эту переменную  и будет ставить 0. Был бы еще денек)))))
-    func updateData(limit: Int, offset: Int) {
-        let requestModel = NewsListModel.NewsRequestModel(limit: limit, offset: offset)
-        newsNetworkService.getNewsList(requestModel: requestModel) { [weak self] result in
-            guard let self = self else { return }
-            switch result {
-            case .success(let response):
-//                print(response.articles?.count)
-                if let list = response.articles, list.count > 0 {
-                    DispatchQueue.main.async {
-                        self.setupModelUpdateData(model: list)
+                        self.checkingForUpdates(model: list, IsThisAnUpdateData)
+                        self.totalResults = response.totalResults ?? 5
                         self.isLoading = false
                     }
                 } else {
@@ -141,19 +120,31 @@ private extension NewsListPresenter {
     
     //MARK: - setupModel
     
-    func setupModelUpdateData(model: [NewsListModel.List]) {
+    func checkingForUpdates(model: [NewsListModel.ResponseNetworkModel.List], _ IsThisAnUpdateData: Bool = false) {
+        let model = createArrayWithData(model: model)
+        switch IsThisAnUpdateData {
+        case true:
+            setupModelUpdateData(model: model)
+        case false:
+            setupModel(model: model)
+        }
+    }
+    
+    func setupModelUpdateData(model: [NewsListModel.News]) {
         self.newsModel = model
         viewController?.updateView()
     }
     
-    func setupModel(model: [NewsListModel.List]) {
+    func setupModel(model: [NewsListModel.News]) {
         switch newsModel.isEmpty {
         case true:
             self.newsModel = model
             viewController?.showFirstNews()
+            StorageManager.shared.saveData(model: newsModel)
         case false:
             newsModel += model
             viewController?.updateView()
+            StorageManager.shared.saveData(model: newsModel)
         }
         
         if newsModel.count == totalResults {
@@ -161,7 +152,6 @@ private extension NewsListPresenter {
         }
         
         offset += 1
-        print("limit: \(limit), offset: \(offset)")
     }
     
     func noResult() {
@@ -169,9 +159,18 @@ private extension NewsListPresenter {
         case true:
             viewController?.showNoResultView()
         case false:
-            isAllNewsLoaded = true // я не понимаю как работает пагинация на бэке, т.е 2-3 запроса отправляет по паре новостей и на след запросы прилетает nil... по этому решил еще тут отслеживать состояние. Вообще в идеале чтобы бек присылал просто меньше чем просим и мониторить в другом месте, Но возможно я ошибаюсь :)
+            isAllNewsLoaded = true
             viewController?.stopFooterTableSpinner()
             viewController?.updateView()
         }
+    }
+    
+    func createArrayWithData(model: [NewsListModel.ResponseNetworkModel.List]) -> [NewsListModel.News] {
+        var newsModel: [NewsListModel.News] = []
+        for item in model {
+            let news = NewsListModel.News(sourceName: item.source?.name, title: item.title, description: item.description, url: item.url, urlToImage: item.urlToImage, date: item.date, numberOfNewsViews: 0)
+            newsModel.append(news)
+        }
+        return newsModel
     }
 }

@@ -20,8 +20,24 @@ final class NewsNetworkManager {
     static let shared = NewsNetworkManager()
     
     // MARK: - Public methods
+
+    func getNews(requestModel: NewsListModel.RequestNewsModel, completion: @escaping (Result<NewsListModel.ResponseNetworkModel.News, Error>) -> Void) {
+        getRequest(requestModel: requestModel) { result in
+            switch result {
+            case .success(let response):
+                completion(.success(response))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+}
+
+// MARK: - Private methods
+
+private extension NewsNetworkManager {
     
-    func getNewsList(requestModel: NewsListModel.NewsRequestModel, completion: @escaping (Result<NewsListModel.News, Error>) -> Void) {
+    func getRequest(requestModel: NewsListModel.RequestNewsModel, completion: @escaping (Result<NewsListModel.ResponseNetworkModel.News, Error>) -> Void) {
         let urlString = mainURL + apiKey + "&page=\(requestModel.offset)&pageSize=\(requestModel.limit)"
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "", code: 0, userInfo: nil)))
@@ -37,11 +53,6 @@ final class NewsNetworkManager {
             }
         }
     }
-}
-
-// MARK: - Private methods
-
-private extension NewsNetworkManager {
     
     func fetchData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void) {
         let task = session.dataTask(with: url) { (data, response, error) in

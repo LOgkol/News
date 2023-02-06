@@ -7,7 +7,7 @@
 
 final class NewsDetailAssembly {
     
-    func configurate(_ vc: NewsDetailDisplayLogic, newsModel: NewsListModel.List? = nil) {
+    func configurate(_ vc: NewsDetailDisplayLogic, newsModel: NewsListModel.News? = nil) {
         let presenter = NewsDetailPresenter(newsModel: newsModel)
         let router = NewsDetailRouter()
         vc.presenter = presenter

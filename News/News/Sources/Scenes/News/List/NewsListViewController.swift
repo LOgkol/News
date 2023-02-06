@@ -16,6 +16,7 @@ protocol NewsListDisplayLogic: UIViewController {
     func startFooterTableSpinner()
     func stopFooterTableSpinner()
     func showAlertRequestError(message: String)
+    func getViewController() -> NewsListViewController
 }
 
 final class NewsListViewController: UIViewController {
@@ -50,7 +51,7 @@ final class NewsListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        presenter?.loadNewsList()
+        presenter?.checkingDataOnDisk()
     }
 }
 
@@ -91,23 +92,18 @@ private extension NewsListViewController {
     }
     
     func makeConstraints() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-        tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
-        tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
-        tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
         
-        noResultView.translatesAutoresizingMaskIntoConstraints = false
-        noResultView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-        noResultView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
-        noResultView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
-        noResultView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        tableView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
         
-        errorView.translatesAutoresizingMaskIntoConstraints = false
-        errorView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-        errorView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
-        errorView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
-        errorView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        noResultView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
+        
+        errorView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
     }
     
     //MARK: - setupViews
@@ -152,7 +148,11 @@ private extension NewsListViewController {
 //MARK: - NewsDisplayLogic extension
 
 extension NewsListViewController: NewsListDisplayLogic {
-
+    
+    func getViewController() -> NewsListViewController {
+        return self
+    }
+    
     func showFirstNews() {
         stopAndRemoveActivityIndicator()
         tableView.isHidden = false
@@ -230,5 +230,14 @@ extension NewsListViewController: UIScrollViewDelegate {
         if offsetY > contentHeight - scrollView.frame.height {
             presenter?.loadNewsList()
         }
+    }
+}
+
+//MARK: - UpdateNewsList
+
+extension NewsListViewController: UpdateNewsList {
+    
+    func updateData() {
+        self.updateView()
     }
 }

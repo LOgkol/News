@@ -16,6 +16,7 @@ final class NewsDetailContentView: UIView {
     // MARK: - UI Elements
     
     private let scrollView = UIScrollView()
+    private let contentView = UIView()
     
     private let imageView = UIImageView()
     private let titleLabel = NewsTFSLabel(type: .mainBold)
@@ -47,15 +48,13 @@ final class NewsDetailContentView: UIView {
     
     // MARK: - Public Methods
     
-    func convigureView(model: NewsListModel.List) {
+    func convigureView(model: NewsListModel.News) {
         titleLabel.text = model.title
         dateLabel.text = model.date
-        publicationSourceLabel.text = model.source?.name
+        publicationSourceLabel.text = model.sourceName
         textNewsLabel.text = model.description
         
-        if let urlImage = model.urlToImage {
-            imageView.load(url: urlImage)
-        }
+        imageView.kf.setImage(with: model.urlToImage, placeholder: UIImage(named: "newsImage"))
         
         if let link = model.url {
             fullTextOfTheNewsTextView.addLinks([
@@ -79,7 +78,8 @@ private extension NewsDetailContentView {
     
     func addViews() {
         addSubview(scrollView)
-        scrollView.addSubview(mainStackView)
+        scrollView.addSubview(contentView)
+        contentView.addSubview(mainStackView)
         
         mainStackView.addArrangedSubview(imageView)
         mainStackView.addArrangedSubview(titleLabel)
@@ -91,23 +91,25 @@ private extension NewsDetailContentView {
     
     func makeConstraints() {
         
-        ///если бы разрешили использовать либо, на snapKit сделал бы динамический скролл с маленьким содержимым контента, по дефолту не получатеся :( хотя snapKit это просто обертка же, хахаах. Многому еще учиться похоже надо :)
+        scrollView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
         
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 12).isActive = true
-        scrollView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -12).isActive = true
-        scrollView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor).isActive = true
-        scrollView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
-
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.heightAnchor.constraint(equalToConstant: 224).isActive = true
+        contentView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+            $0.width.equalToSuperview()
+            $0.height.greaterThanOrEqualTo(safeAreaLayoutGuide).offset(30)
+        }
         
-        mainStackView.translatesAutoresizingMaskIntoConstraints = false
-        mainStackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 8).isActive = true
-        mainStackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor).isActive = true
-        mainStackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor).isActive = true
-        mainStackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor).isActive = true
-        mainStackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -100).isActive = true
+        mainStackView.snp.makeConstraints {
+            $0.top.equalToSuperview()
+            $0.leading.trailing.equalToSuperview().inset(12)
+            $0.bottom.equalToSuperview().inset(100).priority(.low)
+        }
+        
+        imageView.snp.makeConstraints {
+            $0.height.equalTo(224)
+        }
     }
     
     func setupViews() {
@@ -119,7 +121,6 @@ private extension NewsDetailContentView {
         mainStackView.axis = .vertical
         mainStackView.spacing = 8
         
-        imageView.image = UIImage(named: "newsImage")
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 8
         
@@ -132,7 +133,6 @@ private extension NewsDetailContentView {
     func setupTextView() {
         fullTextOfTheNewsTextView.delegate = self
         fullTextOfTheNewsTextView.font = UIFont.systemFont(ofSize: 14)
-        fullTextOfTheNewsTextView.textColor = NewsTFSColor.osloGrey
         fullTextOfTheNewsTextView.text = "\(clickableTextInTextView)"
     }
 }

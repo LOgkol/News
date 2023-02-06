@@ -7,9 +7,12 @@
 
 import UIKit
 
+protocol UpdateNewsList: AnyObject {
+    func updateData()
+}
+
 protocol NewsDetailDisplayLogic: UIViewController {
     var presenter: NewsDetailPresentationProtocol? {get set}
-    
 }
 
 final class NewsDetailViewController: UIViewController, NewsDetailDisplayLogic {
@@ -17,6 +20,8 @@ final class NewsDetailViewController: UIViewController, NewsDetailDisplayLogic {
     //MARK: - MVP Properties
     
     var presenter: NewsDetailPresentationProtocol?
+    
+    weak var delegate: UpdateNewsList?
     
     //MARK: - UI properties
 
@@ -26,15 +31,7 @@ final class NewsDetailViewController: UIViewController, NewsDetailDisplayLogic {
     
     // MARK: - Init
     
-    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
-        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
-    }
-  
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-    }
-    
-    convenience init(newsModel: NewsListModel.List) {
+    convenience init(newsModel: NewsListModel.News) {
         self.init()
         selfConfigurate(newsModel: newsModel)
     }
@@ -49,6 +46,11 @@ final class NewsDetailViewController: UIViewController, NewsDetailDisplayLogic {
         super.viewDidLoad()
         setupUI()
     }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        delegate?.updateData()
+    }
 }
 
 //MARK: - Private Methods
@@ -57,7 +59,7 @@ private extension NewsDetailViewController {
     
     // MARK: - Self configurate
     
-    func selfConfigurate(newsModel: NewsListModel.List? = nil) {
+    func selfConfigurate(newsModel: NewsListModel.News? = nil) {
         let assembly = NewsDetailAssembly()
         assembly.configurate(self, newsModel: newsModel)
     }

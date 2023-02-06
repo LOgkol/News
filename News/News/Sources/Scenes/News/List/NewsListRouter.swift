@@ -8,7 +8,7 @@
 protocol NewsListRouterProtocol: AnyObject {
     var presenter: NewsListPresentationProtocol? {get set}
     
-    func goToDetailViewController(model: NewsListModel.List)
+    func goToDetailViewController(model: NewsListModel.News)
 }
 
 final class NewsListRouter: NewsListRouterProtocol {
@@ -17,8 +17,9 @@ final class NewsListRouter: NewsListRouterProtocol {
     
     lazy var navPush = presenter?.viewController?.navigationController
     
-    func goToDetailViewController(model: NewsListModel.List) {
+    func goToDetailViewController(model: NewsListModel.News) {
         let vc = NewsDetailViewController(newsModel: model)
+        vc.delegate = presenter?.viewController?.getViewController()
         navPush?.pushViewController(vc, animated: true)
     }
 }

@@ -11,7 +11,7 @@ protocol NewsDetailPresentationProtocol: AnyObject {
     var viewController: NewsDetailDisplayLogic? {get set}
     var router: NewsDetailRouterProtocol? {get set}
     
-    func getModel() -> NewsListModel.List?
+    func getModel() -> NewsListModel.News?
     func goToOpenWebView()
 }
 
@@ -24,20 +24,20 @@ final class NewsDetailPresenter: NewsDetailPresentationProtocol {
     
     //MARK: - Init
     
-    init(newsModel: NewsListModel.List?) {
+    init(newsModel: NewsListModel.News?) {
         self.newsModel = newsModel
     }
-    
+
     //MARK: - Data variables
-    
-    private var newsModel: NewsListModel.List?
-    
+
+    private var newsModel: NewsListModel.News?
+
     // MARK: - Delegate Methods
-    
-    func getModel() -> NewsListModel.List? {
+
+    func getModel() -> NewsListModel.News? {
         return newsModel
     }
-    
+
     func goToOpenWebView() {
         guard let url = newsModel?.url else { return }
         router?.openWebView(url: url)

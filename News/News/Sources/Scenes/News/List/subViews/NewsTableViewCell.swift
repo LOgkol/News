@@ -32,18 +32,16 @@ final class NewsTableViewCell: UITableViewCell {
     }
     
     override func prepareForReuse() {
-        //Да, apple говорит что тут не стоит такое делать и лучше делать в cellForRowAt, но практика показывает если сделать тут то тоже ок будет :)
+        iconImageView.kf.setImage(with: URL(string: ""))
         iconImageView.image = UIImage(named: "newsImage")
     }
     
     // MARK: - Public Methods
     
-    func configureView(_ model: NewsListModel.List) {
+    func configureView(_ model: NewsListModel.News) {
         titleLabel.text = model.title
         
-        if let url = model.urlToImage {
-            iconImageView.load(url: url)
-        }
+        iconImageView.kf.setImage(with: model.urlToImage, placeholder: UIImage(named: "newsImage"))
         
         if model.numberOfNewsViews != 0 {
             numberOfcontentNewsLabel.text = "количество просмотров \(model.numberOfNewsViews)"
@@ -74,14 +72,15 @@ private extension NewsTableViewCell {
     }
     
     func makeConstraints() {
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8).isActive = true
-        stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12).isActive = true
-        stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12).isActive = true
-        stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8).isActive = true
+
+        stackView.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview().inset(12)
+            $0.leading.trailing.equalToSuperview().inset(8)
+        }
         
-        iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconImageView.heightAnchor.constraint(equalToConstant: 224).isActive = true
+        iconImageView.snp.makeConstraints {
+            $0.height.equalTo(224)
+        }
     }
     
     func setupViews() {
@@ -95,7 +94,6 @@ private extension NewsTableViewCell {
         
         numberOfcontentNewsLabel.setContentHuggingPriority(.defaultHigh, for: .vertical)
         
-        iconImageView.image = UIImage(named: "newsImage")
         iconImageView.clipsToBounds = true
         iconImageView.layer.cornerRadius = 8
     }
